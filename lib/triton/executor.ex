@@ -185,7 +185,17 @@ defmodule Triton.Executor do
   defp execute_cql(cluster, :stream, cql, nil, options) do
     with pages <- Xandra.Cluster.stream_pages!(cluster, cql, [], options) do
       results = pages
-        |> Stream.flat_map(fn page -> Enum.to_list(page) |> format_results end)
+        |> Stream.flat_map(fn page ->
+             try do
+               Enum.to_list(page)
+               |> format_results
+             catch
+               :exit, err -> {:error, err}
+               err -> {:error, err}
+             rescue
+               err -> {:error, err}
+             end
+           end)
       {:ok, results}
     end
   end
